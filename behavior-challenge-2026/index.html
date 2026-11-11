@@ -3,14 +3,14 @@
 :root{--bg:#f7f7f5;--fg:#1d1d1f;--muted:#666;--card:#fff;--accent:#3b6fd8;--border:#e3e3e0}
 [data-theme=dark]{--bg:#141518;--fg:#e8e8ea;--muted:#a0a0a8;--card:#1d1f24;--accent:#7aa2ff;--border:#2c2f36}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-header{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;justify-content:space-between;align-items:center}
+header{position:sticky;top:44px;background:var(--bg);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;justify-content:space-between;align-items:center}
 header a{color:var(--accent);text-decoration:none}main{max-width:760px;margin:24px auto;padding:28px 32px;background:var(--card);border:1px solid var(--border);border-radius:14px}
 h1{font-size:1.6em;line-height:1.25}h2{font-size:1.15em;margin-top:1.8em;border-left:4px solid var(--accent);padding-left:10px}a{color:var(--accent)}
 button{background:transparent;color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer}
 </style><script>const k='aes-theme';const r=document.documentElement;const s=localStorage.getItem(k);
 r.dataset.theme=s||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
-function t(){r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';localStorage.setItem(k,r.dataset.theme)}</script></head>
-<body><header><a href="../">← AI engineering summaries</a><button onclick="t()">Dark / Light</button></header><main><h1>BEHAVIOR Challenge 2026: Champion Solution Technical Report</h1>
+function t(){r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';localStorage.setItem(k,r.dataset.theme)}</script><script src="../nav.js"></script></head>
+<body><button data-nav-right onclick="t()">Dark / Light</button><main><h1>BEHAVIOR Challenge 2026: Champion Solution Technical Report</h1>
 <p><strong>Scaling by Structure: What Forms Can Scaling Take in Embodied AI?</strong> by the Huawei Noah EAI Team (The North Star Team)</p>
 <p>Source: <a href="https://behavior1k-champion.com/assets/HiPhys-RSI_tech_report.pdf" target="_blank" rel="noopener">HiPhys-RSI technical report (PDF)</a></p>
 <p>This is Huawei Noah's winning write-up for the BEHAVIOR Challenge 2026, which has robots doing 100 long household tasks in simulation. Their main claim is that you can scale robot capability by building and refining code, not just by training bigger models on more data.</p>
