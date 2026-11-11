@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>It's time to build, not buy — process workflow</title>
+<meta name="color-scheme" content="light dark">
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem("cf-connect-2026-theme");
+    if (t !== "light" && t !== "dark") {
+      t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+  try {
+    var l = localStorage.getItem("cf-connect-2026-lang");
+    if (l === "en" || l === "ru") document.documentElement.lang = l;
+  } catch (e) {}
+})();
+</script>
+<style>
+:root {
+  --bg: #f3f0ea;
+  --bg-elev: #fffcf7;
+  --bg-soft: #fff8f0;
+  --text: #1a1714;
+  --text-muted: #5f5850;
+  --border: #e4ddd2;
+  --border-strong: #d4cbbd;
+  --accent: #f38020;
+  --accent-text: #9a4a0a;
+  --accent-soft: rgba(243, 128, 32, 0.14);
+  --accent-line: rgba(243, 128, 32, 0.55);
+  --shadow: 0 1px 2px rgba(40, 30, 10, 0.05), 0 10px 28px rgba(40, 30, 10, 0.07);
+  --focus: #1d4ed8;
+  --decision: #7a4b16;
+  --outcome-build: #1f6b3a;
+  --outcome-buy: #1d4e89;
+  --lesson: #8a4b00;
+  --limit: #6b5a4a;
+  --radius: 14px;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  --bg: #13110f;
+  --bg-elev: #1c1916;
+  --bg-soft: #241c16;
+  --text: #f3eee6;
+  --text-muted: #b0a89e;
+  --border: #3a342c;
+  --border-strong: #4a433a;
+  --accent: #f0a35e;
+  --accent-text: #f0a35e;
+  --accent-soft: rgba(240, 163, 94, 0.16);
+  --accent-line: rgba(240, 163, 94, 0.55);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 28px rgba(0, 0, 0, 0.3);
+  --focus: #93c5fd;
+  --decision: #f0c48a;
+  --outcome-build: #7dcea0;
+  --outcome-buy: #8bb4e8;
+  --lesson: #f0a35e;
+  --limit: #c4b6a8;
+  color-scheme: dark;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  background-image:
+    radial-gradient(1200px 500px at 10% -10%, var(--accent-soft), transparent 55%),
+    radial-gradient(900px 400px at 100% 0%, rgba(243, 128, 32, 0.06), transparent 50%);
+}
+
+/* Nav-bar controls (moved into .aes-nav by nav.js) */
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-elev);
+}
+.seg button {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0.32rem 0.6rem;
+  cursor: pointer;
+  min-width: 2.2rem;
+  line-height: 1.2;
+}
+.seg button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.seg button + button { border-left: 1px solid var(--border); }
+.icon-btn, .btn {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.icon-btn {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-btn svg { width: 1.05rem; height: 1.05rem; display: block; }
+[data-theme="light"] .icon-sun { display: none; }
+[data-theme="dark"] .icon-moon { display: none; }
+.seg button:focus-visible, .icon-btn:focus-visible, .step:focus-visible, a:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 3.5rem;
+}
+
+.hero {
+  padding: 1.4rem 0 0.4rem;
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--accent-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.eyebrow::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 2px;
+  background: var(--accent);
+  transform: rotate(45deg);
+}
+h1 {
+  margin: 0.35rem 0 0.3rem;
+  font-size: clamp(1.6rem, 3vw, 2.15rem);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+.speaker { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
+.hero-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.85rem;
+  margin: 0.7rem 0 0;
+}
+.hero-links a {
+  color: var(--accent-text);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-bottom: 1px solid transparent;
+}
+.hero-links a:hover { border-bottom-color: var(--accent); }
+
+.thesis {
+  margin: 1.15rem 0 1.25rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.15rem;
+  font-size: 1.02rem;
+}
+.thesis p { margin: 0; }
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem 1rem;
+  margin: 0 0 1.1rem;
+}
+.hint { margin: 0; color: var(--text-muted); font-size: 0.85rem; }
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.85rem;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.legend .lab { margin-right: 0.15rem; font-weight: 700; color: var(--text); }
+.swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.swatch i {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 3px;
+  border: 1px solid var(--border-strong);
+  display: inline-block;
+  background: var(--bg-elev);
+}
+.swatch.decision i { background: var(--accent-soft); border-color: var(--accent); border-radius: 1px; transform: rotate(45deg); width: 0.55rem; height: 0.55rem; }
+.swatch.outcome i { background: color-mix(in srgb, var(--outcome-build) 25%, var(--bg-elev)); border-color: var(--outcome-build); }
+.swatch.lesson i { background: var(--accent-soft); border-color: var(--accent); }
+.swatch.limit i { background: transparent; border-style: dashed; }
+
+/* Phases */
+.phase {
+  position: relative;
+  margin: 0 0 1.35rem;
+  padding: 1.15rem 1.1rem 1.2rem 1.15rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+.phase-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.95rem;
+}
+.phase-num {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: grid;
+  place-items: center;
+  letter-spacing: -0.02em;
+}
+[data-theme="dark"] .phase-num { color: #1a1714; }
+.phase h2 {
+  margin: 0.15rem 0 0;
+  font-size: 1.12rem;
+  letter-spacing: -0.02em;
+}
+.phase-lead {
+  margin: 0.15rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+/* Steps */
+.flow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+.flow .step { flex: 1 1 0; min-width: 0; }
+.arrow {
+  flex: 0 0 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  opacity: 0.85;
+  margin-top: 2.15rem;
+}
+.arrow svg { width: 18px; height: 18px; display: block; }
+.grid-2, .grid-4 { display: grid; gap: 0.7rem; }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+.practices { display: flex; flex-direction: column; gap: 0.15rem; }
+.practices .flow { width: 100%; }
+.practices .down-arrow { display: flex; justify-content: center; color: var(--accent); opacity: 0.85; height: 1.2rem; }
+.practices .down-arrow svg { width: 18px; height: 18px; transform: rotate(90deg); }
+
+.step {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem 0.8rem 0.8rem;
+  position: relative;
+  min-width: 0;
+}
+.step[data-expandable="true"] { cursor: pointer; }
+.step[data-expandable="true"]:hover,
+.step[data-expandable="true"]:focus-visible,
+.step.is-open {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.step.decision {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: linear-gradient(180deg, var(--accent-soft), var(--bg-soft) 56%);
+}
+.step.outcome { border-color: color-mix(in srgb, var(--outcome-build) 35%, var(--border)); }
+.step.outcome.buy { border-color: color-mix(in srgb, var(--outcome-buy) 40%, var(--border)); }
+.step.outcome.compare { border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
+.step.outcome.compare .kind { color: var(--accent-text); }
+.step.lesson {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, var(--accent-soft), var(--bg-soft) 40%);
+}
+.step.limit { border-style: dashed; }
+.kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+}
+.kind {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+.step.outcome .kind { color: var(--outcome-build); }
+.step.outcome.buy .kind { color: var(--outcome-buy); }
+.step.limit .kind { color: var(--limit); }
+.step h3 {
+  margin: 0 0 0.28rem;
+  font-size: 0.95rem;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+.step .one {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+.more {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+.more > .more-inner { overflow: hidden; min-height: 0; }
+.more-inner p {
+  margin: 0.55rem 0 0;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.step:hover .more,
+.step:focus-within .more,
+.step.is-open .more { grid-template-rows: 1fr; }
+.chev {
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-muted);
+  flex: none;
+  transition: transform 0.2s ease;
+}
+.step[data-expandable="true"].is-open .chev,
+.step[data-expandable="true"]:hover .chev,
+.step[data-expandable="true"]:focus-within .chev { transform: rotate(180deg); }
+.step:not([data-expandable="true"]) .chev { display: none; }
+
+/* Decision fork */
+.decision-flow { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+.decision-flow > .step { align-self: center; width: min(100%, 28rem); }
+.fork {
+  display: flex;
+  gap: 1rem;
+  position: relative;
+  margin-top: 0.15rem;
+  padding-top: 0.7rem;
+}
+.fork::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 25%;
+  right: 25%;
+  height: 2px;
+  background: var(--accent-line);
+}
+.col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  position: relative;
+}
+.col::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 0.7rem;
+  background: var(--accent-line);
+  transform: translateX(-50%);
+}
+.edge-label {
+  align-self: center;
+  margin: 0.7rem 0 0.5rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  z-index: 1;
+}
+.col > .step { width: 100%; }
+.nested-fork { margin-top: 0.15rem; }
+.nested-fork::before { left: 25%; right: 25%; }
+.col.wide { flex: 1.05; }
+
+/* Timeline */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  padding-left: 1.15rem;
+}
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 0.35rem;
+  top: 0.4rem;
+  bottom: 0.4rem;
+  width: 2px;
+  background: var(--accent-line);
+}
+.tl-item {
+  position: relative;
+  padding: 0 0 0.7rem 0.35rem;
+}
+.tl-item:last-child { padding-bottom: 0; }
+.tl-item::before {
+  content: "";
+  position: absolute;
+  left: -0.95rem;
+  top: 0.95rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--bg-elev);
+}
+.tl-item.lesson::before { border-radius: 2px; }
+.tl-item.limit::before {
+  background: var(--bg-elev);
+  border: 2px dashed var(--limit);
+  box-shadow: 0 0 0 3px var(--bg-elev);
+  width: 0.72rem;
+  height: 0.72rem;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+.metric {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.55rem 0.6rem;
+  text-align: left;
+}
+.metric .val {
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: -0.03em;
+  color: var(--accent-text);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.metric .lbl {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+/* Takeaways */
+.takeaways {
+  margin: 0 0 1.35rem;
+  padding: 1.15rem 1.1rem 1.2rem;
+  background: linear-gradient(180deg, var(--accent-soft), var(--bg-elev) 42%);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+.takeaways h2 { margin: 0 0 0.8rem; font-size: 1.12rem; }
+.take-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+.take {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+}
+.take b {
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+  margin-top: 0.05rem;
+}
+[data-theme="dark"] .take b { color: #1a1714; }
+.take p { margin: 0; font-size: 0.88rem; }
+
+/* Blogs + footer */
+.blogs {
+  padding: 1.15rem 1.1rem 1.2rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+.blogs h2 { margin: 0 0 0.25rem; font-size: 1.05rem; }
+.blogs .note { margin: 0 0 0.8rem; color: var(--text-muted); font-size: 0.82rem; }
+.blogs ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.65rem; }
+.blogs li {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+}
+.blogs a { color: var(--accent-text); font-weight: 700; text-decoration: none; }
+.blogs a:hover { text-decoration: underline; }
+.blogs p { margin: 0.25rem 0 0; font-size: 0.82rem; color: var(--text-muted); }
+footer.source {
+  margin: 1.25rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+footer.source p { margin: 0 0 0.35rem; }
+footer.source a { color: var(--accent-text); }
+
+@media (max-width: 900px) {
+  .flow { flex-direction: column; }
+  .arrow { flex: 0 0 1.1rem; transform: rotate(90deg); align-self: center; margin-top: 0; }
+  .practices .flow { flex-direction: column; }
+  .practices .flow .arrow { flex: 0 0 1.1rem; transform: rotate(90deg); align-self: center; }
+  .grid-2, .metrics { grid-template-columns: 1fr 1fr; }
+  .fork { flex-direction: column; padding-top: 0; gap: 0.85rem; }
+  .fork::before, .col::before { display: none; }
+}
+@media (max-width: 620px) {
+  .grid-2, .metrics, .take-list { grid-template-columns: 1fr; }
+  .wrap { padding: 0.85rem 0.85rem 2.5rem; }
+  .phase, .takeaways, .blogs { padding: 0.95rem 0.8rem 1rem; }
+}
+</style>
+<script src="../nav.js"></script>
+</head>
+<body>
+<div class="nav-controls" data-nav-right>
+  <div class="seg" role="group" aria-label="Language">
+    <button type="button" id="btn-en" aria-pressed="true" aria-label="Switch to English">EN</button>
+    <button type="button" id="btn-ru" aria-pressed="false" aria-label="Switch to Russian">RU</button>
+  </div>
+  <button type="button" class="icon-btn" id="theme-toggle" aria-label="Dark mode" title="Dark mode">
+    <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12.4 2.1a1 1 0 0 1 .95 1.3A8 8 0 1 0 20.6 14.7a1 1 0 0 1 1.26.95A10 10 0 1 1 10.3 2.15a1 1 0 0 1 2.1-.05z"/></svg>
+    <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 5a1 1 0 0 1 1-1h0a1 1 0 1 1 0 2h0a1 1 0 0 1-1-1zm0 14a1 1 0 0 1 1-1h0a1 1 0 1 1 0 2h0a1 1 0 0 1-1-1zM5 13a1 1 0 0 1-1-1h0a1 1 0 1 1 2 0h0a1 1 0 0 1-1 1zm16-1a1 1 0 0 1-1 1h0a1 1 0 1 1 0-2h0a1 1 0 0 1 1 1zM7.05 7.05a1 1 0 0 1 1.41 0h0a1 1 0 0 1-1.41 1.41h0a1 1 0 0 1 0-1.41zm9.9 9.9a1 1 0 0 1 1.41 0h0a1 1 0 0 1-1.41 1.41h0a1 1 0 0 1 0-1.41zM7.05 16.95a1 1 0 0 1 0 1.41h0a1 1 0 1 1-1.41-1.41h0a1 1 0 0 1 1.41 0zM16.95 7.05a1 1 0 0 1 0 1.41h0A1 1 0 1 1 15.54 7.05h0a1 1 0 0 1 1.41 0zM12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/></svg>
+  </button>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow" data-i18n="eyebrow"></div>
+    <h1 data-i18n="title"></h1>
+    <p class="speaker" data-i18n="speaker"></p>
+    <div class="hero-links">
+      <a href="https://www.youtube.com/watch?v=-_qUn_LfJ6M" target="_blank" rel="noopener noreferrer" data-i18n="watch"></a>
+      <a href="./" data-i18n="treeLink"></a>
+    </div>
+  </header>
+
+  <section class="thesis" aria-label="Thesis">
+    <p data-i18n="thesis"></p>
+  </section>
+
+  <div class="toolbar">
+    <p class="hint" data-i18n="hint"></p>
+    <div class="legend">
+      <span class="lab" data-i18n="legend"></span>
+      <span class="swatch step"><i></i><span data-i18n="legendStep"></span></span>
+      <span class="swatch decision"><i></i><span data-i18n="legendDecision"></span></span>
+      <span class="swatch outcome"><i></i><span data-i18n="legendOutcome"></span></span>
+      <span class="swatch lesson"><i></i><span data-i18n="legendLesson"></span></span>
+      <span class="swatch limit"><i></i><span data-i18n="legendLimit"></span></span>
+    </div>
+  </div>
+
+  <!-- Phase 1 -->
+  <section class="phase" id="shift">
+    <div class="phase-head">
+      <div class="phase-num">1</div>
+      <div>
+        <h2 data-i18n="p1"></h2>
+      </div>
+    </div>
+    <div class="flow" id="flow-shift"></div>
+  </section>
+
+  <!-- Phase 2 -->
+  <section class="phase" id="rules">
+    <div class="phase-head">
+      <div class="phase-num">2</div>
+      <div>
+        <h2 data-i18n="p2"></h2>
+      </div>
+    </div>
+    <div class="decision-flow">
+      <article class="step decision" data-key="p2q1"></article>
+      <div class="fork">
+        <div class="col">
+          <div class="edge-label" data-i18n="yes"></div>
+          <article class="step decision" data-key="p2q2"></article>
+          <div class="fork nested-fork">
+            <div class="col">
+              <div class="edge-label" data-i18n="noNothingFits"></div>
+              <article class="step outcome" data-key="p2o1"></article>
+            </div>
+            <div class="col">
+              <div class="edge-label" data-i18n="yesProductFits"></div>
+              <article class="step outcome buy" data-key="p2o2"></article>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="edge-label" data-i18n="no"></div>
+          <article class="step outcome compare" data-key="p2o3"></article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Phase 3 -->
+  <section class="phase" id="before">
+    <div class="phase-head">
+      <div class="phase-num">3</div>
+      <div>
+        <h2 data-i18n="p3"></h2>
+        <p class="phase-lead" data-i18n="p3lead"></p>
+      </div>
+    </div>
+    <div class="practices" id="flow-before"></div>
+  </section>
+
+  <!-- Phase 4 -->
+  <section class="phase" id="case">
+    <div class="phase-head">
+      <div class="phase-num">4</div>
+      <div>
+        <h2 data-i18n="p4"></h2>
+      </div>
+    </div>
+    <div class="timeline" id="flow-case"></div>
+  </section>
+
+  <!-- Phase 5 -->
+  <section class="phase" id="qa">
+    <div class="phase-head">
+      <div class="phase-num">5</div>
+      <div>
+        <h2 data-i18n="p5"></h2>
+      </div>
+    </div>
+    <div class="flow" id="flow-qa"></div>
+  </section>
+
+  <section class="takeaways">
+    <h2 data-i18n="takeaways"></h2>
+    <div class="take-list">
+      <div class="take"><b>1</b><p data-i18n="t1"></p></div>
+      <div class="take"><b>2</b><p data-i18n="t2"></p></div>
+      <div class="take"><b>3</b><p data-i18n="t3"></p></div>
+      <div class="take"><b>4</b><p data-i18n="t4"></p></div>
+      <div class="take"><b>5</b><p data-i18n="t5"></p></div>
+    </div>
+  </section>
+
+  <section class="blogs">
+    <h2 data-i18n="blogs"></h2>
+    <p class="note" data-i18n="blogsNote"></p>
+    <ul>
+      <li>
+        <a href="https://blog.cloudflare.com/internal-ai-engineering-stack/" target="_blank" rel="noopener noreferrer" data-i18n="b1t"></a>
+        <p data-i18n="b1d"></p>
+      </li>
+      <li>
+        <a href="https://blog.cloudflare.com/auto-router/" target="_blank" rel="noopener noreferrer" data-i18n="b2t"></a>
+        <p data-i18n="b2d"></p>
+      </li>
+      <li>
+        <a href="https://blog.cloudflare.com/ai-model-overuse-user-insights/" target="_blank" rel="noopener noreferrer" data-i18n="b3t"></a>
+        <p data-i18n="b3d"></p>
+      </li>
+    </ul>
+  </section>
+
+  <footer class="source">
+    <p data-i18n="source"></p>
+    <p>
+      <a href="https://www.youtube.com/watch?v=-_qUn_LfJ6M" target="_blank" rel="noopener noreferrer" data-i18n="footerTalk"></a>
+      ·
+      <a href="./#node-talk-2" data-i18n="footerTree"></a>
+    </p>
+  </footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var I18N = {
+    en: {
+      pageTitle: "It's time to build, not buy — process workflow",
+      eyebrow: "Cloudflare Connect 2026",
+      title: "It's time to build, not buy",
+      speaker: "Ryan Skidmore, from Cloudflare, who works on developer productivity and AI.",
+      watch: "Watch the talk ↗",
+      treeLink: "Talk summaries",
+      thesis: "AI has made it realistic to build your own software instead of buying it, but you still have to run and maintain what you build, so the real question is whether you should build it, not whether you can.",
+      hint: "Hover or click a step to expand its detail.",
+      legend: "Legend",
+      legendStep: "Step",
+      legendDecision: "Decision",
+      legendOutcome: "Outcome",
+      legendLesson: "Lesson",
+      legendLimit: "Limit",
+      langToEn: "Switch to English",
+      langToRu: "Switch to Russian",
+      themeToDark: "Dark mode",
+      themeToLight: "Light mode",
+      yes: "Yes",
+      no: "No",
+      noNothingFits: "No — nothing fits",
+      yesProductFits: "Yes — a product fits well",
+      p1: "Why the old advice is shifting",
+      p1s1t: "“Don't reinvent the wheel”",
+      p1s1d: "This used to make sense. Building took months, needed a team and meant someone on call, while buying got you live within weeks.",
+      p1s2t: "Buying now has its own pain",
+      p1s2d: "He cites SaaS prices up 16.4% in a year, 65% of licences going unused, and 79% of IT leads hit with price rises at renewal.",
+      p1s3t: "AI got much cheaper and more capable",
+      p1s3d: "For the same benchmark score, the cost of input tokens fell about 75 times between March 2023 and April 2025.",
+      p1s3m: "On METR's measure of how long a task a model can finish on its own, models went from about 4 minutes with GPT-4 to about 12 hours with Claude Opus 4.6, and the newest models are off the scale.",
+      p1s4t: "The real question",
+      p1s4d: "Not whether you can build it, but whether you should — because you still have to run and maintain what you build.",
+      p2: "His rules for build or buy",
+      p2q1t: "Is it critical?",
+      p2q1d: "If it is, the next question is whether a product on the market fits well. If it isn't, compare price with the token cost of building it.",
+      p2q2t: "Does a product fit well?",
+      p2q2d: "If it's critical and nothing on the market fits, build it. If a product fits well, buy it, but make sure you can leave the vendor.",
+      p2o1t: "Build it",
+      p2o1d: "If it's critical and nothing on the market fits, build it.",
+      p2o2t: "Buy it, but keep an exit",
+      p2o2d: "If it's critical and a product fits well, buy it, but make sure you can leave the vendor.",
+      p2o3t: "Compare cost, or try a small build",
+      p2o3d: "If it isn't critical, compare the price with what the tokens to build it would cost, which keeps getting cheaper. Or build something small and see.",
+      p3: "Before building",
+      p3lead: "Work out exactly what's wrong with your current tool. Prototype in an afternoon, not five weeks. Count the real costs, reuse existing parts, measure everything, and keep a way out.",
+      p3s1t: "Work out what's wrong",
+      p3s1d: "Before building, work out exactly what's wrong with your current tool.",
+      p3s2t: "Prototype in an afternoon",
+      p3s2d: "Prototype in an afternoon, not five weeks.",
+      p3s3t: "Count the real costs",
+      p3s3d: "Count security, maintenance and on-call costs.",
+      p3s4t: "Reuse existing parts",
+      p3s4d: "Reuse existing parts (he used OpenCode, Workers KV and AI Gateway).",
+      p3s5t: "Measure everything",
+      p3s5d: "Measure everything.",
+      p3s6t: "Keep a way out",
+      p3s6d: "Keep a way out.",
+      p3s7t: "Expect to replace your tools",
+      p3s7d: "With better models, a rebuild in six months may take half the time, so tech debt matters less than solving the problem now.",
+      p3s8t: "Watch for “personal software” sprawl",
+      p3s8d: "A thousand employees each building their own version of the same tool is a mess.",
+      p4: "Case study: Cloudflare's internal AI code reviewer",
+      p4s1t: "Try off-the-shelf tools first",
+      p4s1d: "They tried off-the-shelf AI review tools first.",
+      p4s1m: "None were flexible enough, and vendors wouldn't guarantee what they promised.",
+      p4s2t: "Build a first version in an afternoon",
+      p4s2d: "He built the first version in an afternoon: a git diff and a basic prompt.",
+      p4s3t: "Own and grow the tool",
+      p4s3d: "It's now a much bigger system built on the open-source OpenCode agent and runs in GitLab.",
+      p4s3m: "About 500 changes have come from people all over the company, which is the big upside of owning the tool.",
+      p4s4t: "Require it on every merge request",
+      p4s4d: "Every merge request at Cloudflare has to pass it.",
+      p4s5t: "What it delivered",
+      p4s5d: "The wait for a first review went from hours to minutes. Each review now costs $0.67, after they cut their AI bill by 68% through optimisation.",
+      m1v: "Just over 1 million", m1l: "reviews",
+      m2v: "About 350,000", m2l: "merge requests",
+      m3v: "Almost 7,000", m3l: "repositories",
+      m4v: "About 16,000", m4l: "merges blocked in four months",
+      m5v: "Hours → minutes", m5l: "wait for a first review",
+      m6v: "$0.67", m6l: "per review",
+      m7v: "68% lower", m7l: "AI bill, through optimisation",
+      m8v: "Fallback", m8l: "so engineers can still ship if an AI provider goes down",
+      p4s6t: "Lesson: flag only what people will actually act on",
+      p4s6d: "Early versions of the reviewer flagged everything they could, assuming more findings meant more value.",
+      p4s6m: "Engineers said in feedback that a lot of it was nitpicks and minor stuff that didn't need fixing. So they changed it to flag only problems people care about and would actually fix. After that, people acted on a bigger share of the findings, because each one was more important and worth their time. The idea behind it, which he implies but doesn't spell out, is that every comment costs the engineer time to read and decide on. If most of them are trivial, the important ones get lost in the noise. Fewer, better comments get more action.",
+      p4s7t: "Limits: it doesn't replace human review",
+      p4s7d: "It mostly sees only the diff, not the design behind the change.",
+      p4s7m: "It can't cheaply check the effect on up to 100 connected services, it misses timing-dependent race bugs, and huge changes of millions of lines don't fit in the model's context. It doesn't replace human review.",
+      p5: "Q&A",
+      p5s1t: "Why not just run it on the laptop?",
+      p5s1d: "Asked why the reviewer doesn't just run on the developer's laptop: AI isn't deterministic, so they review adversarially from about five angles.",
+      p5s1m: "A local version exists, but its results are harder to track.",
+      p5s2t: "Push standards onto developers' machines",
+      p5s2d: "They push linters, RFCs and agent skills onto developers' machines so code follows the standards from the start.",
+      p5s3t: "Models close the loop",
+      p5s3d: "He says recent models wait for CI, read the review comments and fix them in a loop until the merge request is ready.",
+      takeaways: "Key takeaways",
+      t1: "The real question is whether you should build it, not whether you can — because you still have to run and maintain what you build.",
+      t2: "If it's critical and nothing on the market fits, build it. If it's critical and a product fits well, buy it, but make sure you can leave the vendor. If it isn't critical, compare the price with token cost, or build something small and see.",
+      t3: "Prototype in an afternoon, reuse existing parts, measure everything, and keep a way out. Expect to replace your tools; watch out for “personal software” sprawl.",
+      t4: "Flag only what people will actually act on. After the reviewer stopped raising nitpicks, people acted on a bigger share of the findings. Fewer, better comments get more action.",
+      t5: "The upside of owning the tool: about 500 changes to the reviewer have come from people all over the company.",
+      blogs: "Related Cloudflare blog posts",
+      blogsNote: "These posts were mapped to this talk's themes. They are not part of the talk itself, and some figures appear only in the posts.",
+      b1t: "The AI engineering stack we built internally — on the platform we ship",
+      b1d: "20 April 2026. The detailed write-up of the internal stack Ryan Skidmore used as the case study: OpenCode, AI Gateway, Workers AI, and an AI code reviewer on every merge request, built on the same products Cloudflare ships.",
+      b2t: "Cut your AI spend with AI Gateway's Auto Router",
+      b2d: "30 September 2026. Automatic model routing for cost, including internal use with OpenCode — close to Skidmore's emphasis on measuring and cutting token spend.",
+      b3t: "Identify AI model overuse with User Insights",
+      b3d: "30 September 2026. The visibility layer behind the “measure everything” advice. It shows when a model is overkill for a task, which supports the question of whether you should build a tool, and what it should cost.",
+      source: "Source: the talk summary of “It's time to build, not buy,” including the nitpicks correction. Labels and figures follow that summary; nothing here is invented.",
+      footerTalk: "YouTube talk",
+      footerTree: "This talk in the summaries tree",
+      kindStep: "Step",
+      kindDecision: "Decision",
+      kindOutcome: "Outcome",
+      kindLesson: "Lesson",
+      kindLimit: "Limit"
+    },
+    ru: {
+      pageTitle: "Пора строить, а не покупать — схема процесса",
+      eyebrow: "Cloudflare Connect 2026",
+      title: "Пора строить, а не покупать",
+      speaker: "Ryan Skidmore из Cloudflare, занимается продуктивностью разработчиков и ИИ.",
+      watch: "Смотреть доклад ↗",
+      treeLink: "Конспекты докладов",
+      thesis: "ИИ сделал реалистичным создавать своё ПО вместо того, чтобы его покупать, но созданное всё равно нужно эксплуатировать и поддерживать, поэтому настоящий вопрос — стоит ли это строить, а не можете ли вы это построить.",
+      hint: "Наведите курсор или нажмите на шаг, чтобы раскрыть подробности.",
+      legend: "Обозначения",
+      legendStep: "Шаг",
+      legendDecision: "Решение",
+      legendOutcome: "Итог",
+      legendLesson: "Урок",
+      legendLimit: "Ограничение",
+      langToEn: "Переключить на английский",
+      langToRu: "Переключить на русский",
+      themeToDark: "Тёмная тема",
+      themeToLight: "Светлая тема",
+      yes: "Да",
+      no: "Нет",
+      noNothingFits: "Нет — ничего не подходит",
+      yesProductFits: "Да — продукт хорошо подходит",
+      p1: "Почему старый совет меняется",
+      p1s1t: "«Don't reinvent the wheel»",
+      p1s1d: "Раньше это имело смысл. Разработка занимала месяцы, требовала команды и дежурств, а покупка давала запуск за недели.",
+      p1s2t: "У покупки теперь своя боль",
+      p1s2d: "Он приводит рост цен на SaaS на 16,4% за год, 65% неиспользуемых лицензий и 79% руководителей IT, столкнувшихся с повышением цены при продлении.",
+      p1s3t: "ИИ стал гораздо дешевле и сильнее",
+      p1s3d: "При том же результате на бенчмарке стоимость входных токенов упала примерно в 75 раз между мартом 2023 и апрелем 2025 года.",
+      p1s3m: "По мере METR того, насколько длинную задачу модель может закончить самостоятельно, модели прошли путь примерно от 4 минут у GPT-4 до примерно 12 часов у Claude Opus 4.6, а новейшие модели уже за шкалой.",
+      p1s4t: "Настоящий вопрос",
+      p1s4d: "Не можете ли вы это построить, а стоит ли — потому что созданное всё равно нужно эксплуатировать и поддерживать.",
+      p2: "Его правила «строить или покупать»",
+      p2q1t: "Это критично?",
+      p2q1d: "Если да, следующий вопрос — хорошо ли подходит продукт на рынке. Если нет, сравните цену с тем, сколько стоили бы токены на то, чтобы это построить.",
+      p2q2t: "Продукт хорошо подходит?",
+      p2q2d: "Если это критично и на рынке ничего не подходит, стройте. Если продукт хорошо подходит, покупайте, но убедитесь, что сможете уйти от вендора.",
+      p2o1t: "Строить",
+      p2o1d: "Если это критично и на рынке ничего не подходит, стройте.",
+      p2o2t: "Покупать, но оставить выход",
+      p2o2d: "Если это критично и продукт хорошо подходит, покупайте, но убедитесь, что сможете уйти от вендора.",
+      p2o3t: "Сравнить цену или собрать небольшое",
+      p2o3d: "Если это не критично, сравните цену с тем, сколько стоили бы токены на то, чтобы это построить, — а это становится всё дешевле. Или соберите что-то небольшое и посмотрите.",
+      p3: "Прежде чем строить",
+      p3lead: "Точно разберитесь, что не так с текущим инструментом. Прототип — за полдень, а не за пять недель. Учитывайте реальные затраты, переиспользуйте уже имеющиеся части, измеряйте всё и оставляйте себе выход.",
+      p3s1t: "Разобраться, что не так",
+      p3s1d: "Прежде чем строить, точно разберитесь, что не так с текущим инструментом.",
+      p3s2t: "Прототип за полдень",
+      p3s2d: "Прототип — за полдень, а не за пять недель.",
+      p3s3t: "Учесть реальные затраты",
+      p3s3d: "Учитывайте безопасность, сопровождение и дежурства.",
+      p3s4t: "Переиспользовать уже имеющееся",
+      p3s4d: "Переиспользуйте уже имеющиеся части (он использовал OpenCode, Workers KV и AI Gateway).",
+      p3s5t: "Измерять всё",
+      p3s5d: "Измеряйте всё.",
+      p3s6t: "Оставить себе выход",
+      p3s6d: "Оставляйте себе выход.",
+      p3s7t: "Ожидать замену инструментов",
+      p3s7d: "С более сильными моделями переписывание через шесть месяцев может занять вдвое меньше времени, поэтому технический долг менее важен, чем решение проблемы сейчас.",
+      p3s8t: "Остерегаться расползания «personal software»",
+      p3s8d: "Тысяча сотрудников, каждый из которых строит свою версию одного и того же инструмента, — это хаос.",
+      p4: "Кейс: внутренний ИИ-ревьюер кода в Cloudflare",
+      p4s1t: "Сначала готовые инструменты",
+      p4s1d: "Сначала они пробовали готовые инструменты ИИ-ревью.",
+      p4s1m: "Ни один не был достаточно гибким, и вендоры не гарантировали то, что обещали.",
+      p4s2t: "Первая версия за полдень",
+      p4s2d: "Первую версию он собрал за полдень: git diff и простой промпт.",
+      p4s3t: "Владеть инструментом и развивать его",
+      p4s3d: "Теперь это гораздо более крупная система на открытом агенте OpenCode, работающая в GitLab.",
+      p4s3m: "Около 500 изменений пришли от людей со всей компании, и в этом главный плюс владения инструментом.",
+      p4s4t: "Обязателен на каждом merge request",
+      p4s4d: "Каждый merge request в Cloudflare должен через него пройти.",
+      p4s5t: "Что получилось",
+      p4s5d: "Ожидание первого ревью сократилось с часов до минут. Каждое ревью теперь стоит $0.67 после того, как они сократили счёт за ИИ на 68% за счёт оптимизации.",
+      m1v: "Чуть больше 1 миллиона", m1l: "ревью",
+      m2v: "Около 350 000", m2l: "merge request'ов",
+      m3v: "Почти 7 000", m3l: "репозиториев",
+      m4v: "Около 16 000", m4l: "слияний заблокировано за четыре месяца",
+      m5v: "С часов до минут", m5l: "ожидание первого ревью",
+      m6v: "$0.67", m6l: "за одно ревью",
+      m7v: "На 68% ниже", m7l: "счёт за ИИ, за счёт оптимизации",
+      m8v: "Запасной путь", m8l: "чтобы инженеры могли выкатывать изменения, если провайдер ИИ упадёт",
+      p4s6t: "Урок: помечать только то, по чему люди будут действовать",
+      p4s6d: "Ранние версии ревьюера помечали всё, что могли, исходя из того, что больше находок значит больше пользы.",
+      p4s6m: "В обратной связи инженеры говорили, что многое из этого было придирками (nitpicks) и мелочами, которые не нужно было исправлять. Поэтому его изменили так, чтобы помечать только проблемы, которые людям важны и которые они действительно исправят. После этого люди реагировали на большую долю находок, потому что каждая из них была важнее и стоила их времени. Идея, которую он подразумевает, но не формулирует явно, в том, что каждый комментарий стоит инженеру времени на чтение и решение. Если большинство из них пустяковые, важные тонут в шуме. Меньше, но более качественных комментариев даёт больше действий.",
+      p4s7t: "Ограничения: он не заменяет человеческое ревью",
+      p4s7d: "Он в основном видит только diff, а не замысел изменения.",
+      p4s7m: "Он не может дёшево проверить влияние на до 100 связанных сервисов, пропускает гонки, зависящие от тайминга, а огромные изменения на миллионы строк не помещаются в контекст модели. Он не заменяет человеческое ревью.",
+      p5: "Вопросы и ответы",
+      p5s1t: "Почему не просто на ноутбуке?",
+      p5s1d: "На вопрос, почему ревьюер не запускается просто на ноутбуке разработчика: ИИ недетерминирован, поэтому они ревьюят состязательно примерно с пяти сторон.",
+      p5s1m: "Локальная версия есть, но её результаты труднее отслеживать.",
+      p5s2t: "Доставлять стандарты на машины разработчиков",
+      p5s2d: "Они доставляют линтеры, RFC и навыки агентов на машины разработчиков, чтобы код следовал стандартам с самого начала.",
+      p5s3t: "Модели замыкают цикл",
+      p5s3d: "Он говорит, что недавние модели ждут CI, читают комментарии ревью и исправляют их в цикле, пока merge request не будет готов.",
+      takeaways: "Главные выводы",
+      t1: "Настоящий вопрос — стоит ли это строить, а не можете ли вы это построить: созданное всё равно нужно эксплуатировать и поддерживать.",
+      t2: "Если это критично и на рынке ничего не подходит, стройте. Если это критично и продукт хорошо подходит, покупайте, но убедитесь, что сможете уйти от вендора. Если это не критично, сравните цену со стоимостью токенов или соберите что-то небольшое и посмотрите.",
+      t3: "Прототип — за полдень, переиспользуйте уже имеющиеся части, измеряйте всё и оставляйте себе выход. Ожидайте, что инструменты придётся заменять; остерегайтесь расползания «personal software».",
+      t4: "Помечайте только то, по чему люди действительно будут действовать. После того как ревьюер перестал поднимать придирки, люди реагировали на большую долю находок. Меньше, но более качественных комментариев даёт больше действий.",
+      t5: "Плюс владения инструментом: около 500 изменений в ревьюер пришли от людей со всей компании.",
+      blogs: "Связанные записи в блоге Cloudflare",
+      blogsNote: "Эти записи сопоставлены с темами доклада. Они не являются частью самого доклада, и некоторые цифры есть только в постах.",
+      b1t: "The AI engineering stack we built internally — on the platform we ship",
+      b1d: "20 апреля 2026. Подробный рассказ о внутреннем стеке, который Ryan Skidmore взял как кейс: OpenCode, AI Gateway, Workers AI и ИИ-ревьюер кода на каждом merge request, построенные на тех же продуктах, которые выпускает Cloudflare.",
+      b2t: "Cut your AI spend with AI Gateway's Auto Router",
+      b2d: "30 сентября 2026. Автоматическая маршрутизация моделей по стоимости, в том числе во внутреннем использовании с OpenCode — близко к тому, как Skidmore подчёркивает необходимость измерять и сокращать расходы на токены.",
+      b3t: "Identify AI model overuse with User Insights",
+      b3d: "30 сентября 2026. Слой видимости за советом «измеряйте всё». Он показывает, когда модель избыточна для задачи, и это помогает ответить, стоит ли строить инструмент и сколько он должен стоить.",
+      source: "Источник: конспект доклада «Пора строить, а не покупать», включая правку про nitpicks. Подписи и цифры следуют этому конспекту; здесь ничего не выдумано.",
+      footerTalk: "Доклад на YouTube",
+      footerTree: "Этот доклад в дереве конспектов",
+      kindStep: "Шаг",
+      kindDecision: "Решение",
+      kindOutcome: "Итог",
+      kindLesson: "Урок",
+      kindLimit: "Ограничение"
+    }
+  };
+
+  var ARROW = '<span class="arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>';
+  var CHEV = '<svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path fill="currentColor" d="M5.2 7.2a1 1 0 0 1 1.4 0L10 10.6l3.4-3.4a1 1 0 1 1 1.4 1.4l-4.1 4.1a1 1 0 0 1-1.4 0L5.2 8.6a1 1 0 0 1 0-1.4z"/></svg>';
+
+  var SHIFT = ["p1s1", "p1s2", "p1s3", "p1s4"];
+  var BEFORE = ["p3s1", "p3s2", "p3s3", "p3s4", "p3s5", "p3s6", "p3s7", "p3s8"];
+  var CASE = [
+    { key: "p4s1", cls: "" },
+    { key: "p4s2", cls: "" },
+    { key: "p4s3", cls: "" },
+    { key: "p4s4", cls: "" },
+    { key: "p4s5", cls: "outcome", metrics: true },
+    { key: "p4s6", cls: "lesson" },
+    { key: "p4s7", cls: "limit" }
+  ];
+  var QA = ["p5s1", "p5s2", "p5s3"];
+
+  var lang = document.documentElement.lang === "ru" ? "ru" : "en";
+  var theme = document.documentElement.getAttribute("data-theme") || "light";
+
+  function pack() { return I18N[lang] || I18N.en; }
+  function t(key) { return pack()[key] || I18N.en[key] || ""; }
+
+  function kindLabel(el) {
+    if (el.classList.contains("decision")) return t("kindDecision");
+    if (el.classList.contains("lesson")) return t("kindLesson");
+    if (el.classList.contains("limit")) return t("kindLimit");
+    if (el.classList.contains("outcome")) return t("kindOutcome");
+    return t("kindStep");
+  }
+
+  function metricsHtml() {
+    var ids = [1,2,3,4,5,6,7,8];
+    return '<div class="metrics">' + ids.map(function (i) {
+      return '<div class="metric"><span class="val" data-i18n="m' + i + 'v"></span><span class="lbl" data-i18n="m' + i + 'l"></span></div>';
+    }).join("") + "</div>";
+  }
+
+  function fillStep(el, key) {
+    var more = t(key + "m");
+    var expandable = !!more;
+    if (expandable) el.setAttribute("data-expandable", "true");
+    else el.removeAttribute("data-expandable");
+    if (expandable) {
+      el.setAttribute("tabindex", "0");
+      el.setAttribute("role", "button");
+      el.setAttribute("aria-expanded", el.classList.contains("is-open") ? "true" : "false");
+    } else {
+      el.removeAttribute("tabindex");
+      el.removeAttribute("role");
+      el.removeAttribute("aria-expanded");
+    }
+    var html = '<div class="kicker"><span class="kind">' + kindLabel(el) + "</span>";
+    if (expandable) html += CHEV;
+    html += "</div>";
+    html += "<h3 data-i18n=\"" + key + "t\"></h3>";
+    html += "<p class=\"one\" data-i18n=\"" + key + "d\"></p>";
+    if (el.hasAttribute("data-metrics")) html += metricsHtml();
+    if (expandable) {
+      html += '<div class="more"><div class="more-inner"><p data-i18n="' + key + 'm"></p></div></div>';
+    }
+    el.innerHTML = html;
+  }
+
+  function makeStep(key, extraClass) {
+    var el = document.createElement("article");
+    el.className = "step" + (extraClass ? " " + extraClass : "");
+    el.setAttribute("data-key", key);
+    return el;
+  }
+
+  function buildFlow(container, keys) {
+    container.innerHTML = "";
+    keys.forEach(function (key, i) {
+      if (i) container.insertAdjacentHTML("beforeend", ARROW);
+      container.appendChild(makeStep(key));
+    });
+  }
+
+  function buildPractices(container, keys) {
+    container.innerHTML = "";
+    var mid = Math.ceil(keys.length / 2);
+    function row(slice) {
+      var d = document.createElement("div");
+      d.className = "flow";
+      slice.forEach(function (key, i) {
+        if (i) d.insertAdjacentHTML("beforeend", ARROW);
+        d.appendChild(makeStep(key));
+      });
+      return d;
+    }
+    container.appendChild(row(keys.slice(0, mid)));
+    container.insertAdjacentHTML("beforeend", '<div class="down-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>');
+    container.appendChild(row(keys.slice(mid)));
+  }
+
+  function buildCase(container, items) {
+    container.innerHTML = "";
+    items.forEach(function (item) {
+      var wrap = document.createElement("div");
+      wrap.className = "tl-item" + (item.cls ? " " + item.cls : "");
+      var step = makeStep(item.key, item.cls);
+      if (item.metrics) step.setAttribute("data-metrics", "true");
+      wrap.appendChild(step);
+      container.appendChild(wrap);
+    });
+  }
+
+  function applyI18n() {
+    document.documentElement.lang = lang;
+    document.title = t("pageTitle");
+    document.querySelectorAll(".step[data-key]").forEach(function (el) {
+      fillStep(el, el.getAttribute("data-key"));
+    });
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      el.textContent = t(el.getAttribute("data-i18n"));
+    });
+    var en = document.getElementById("btn-en");
+    var ru = document.getElementById("btn-ru");
+    en.setAttribute("aria-pressed", lang === "en" ? "true" : "false");
+    ru.setAttribute("aria-pressed", lang === "ru" ? "true" : "false");
+    en.setAttribute("aria-label", t("langToEn"));
+    ru.setAttribute("aria-label", t("langToRu"));
+    applyTheme();
+  }
+
+  function applyTheme() {
+    document.documentElement.setAttribute("data-theme", theme);
+    var btn = document.getElementById("theme-toggle");
+    var label = theme === "dark" ? t("themeToLight") : t("themeToDark");
+    btn.setAttribute("aria-label", label);
+    btn.setAttribute("title", label);
+    btn.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+  }
+
+  function saveLang() { try { localStorage.setItem("cf-connect-2026-lang", lang); } catch (e) {} }
+  function saveTheme() { try { localStorage.setItem("cf-connect-2026-theme", theme); } catch (e) {} }
+
+  function toggleStep(el) {
+    if (!el || el.getAttribute("data-expandable") !== "true") return;
+    var open = !el.classList.contains("is-open");
+    el.classList.toggle("is-open", open);
+    el.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  function bind() {
+    document.getElementById("btn-en").addEventListener("click", function () {
+      lang = "en"; saveLang(); applyI18n();
+    });
+    document.getElementById("btn-ru").addEventListener("click", function () {
+      lang = "ru"; saveLang(); applyI18n();
+    });
+    document.getElementById("theme-toggle").addEventListener("click", function () {
+      theme = theme === "dark" ? "light" : "dark";
+      saveTheme();
+      applyTheme();
+    });
+    document.addEventListener("click", function (e) {
+      var step = e.target.closest(".step[data-expandable='true']");
+      if (step) toggleStep(step);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      var step = e.target.closest && e.target.closest(".step[data-expandable='true']");
+      if (!step || e.target !== step) return;
+      e.preventDefault();
+      toggleStep(step);
+    });
+  }
+
+  buildFlow(document.getElementById("flow-shift"), SHIFT);
+  buildPractices(document.getElementById("flow-before"), BEFORE);
+  buildCase(document.getElementById("flow-case"), CASE);
+  buildFlow(document.getElementById("flow-qa"), QA);
+  applyI18n();
+  bind();
+})();
+</script>
+</body>
+</html>

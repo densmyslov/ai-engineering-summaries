@@ -5,7 +5,8 @@
   var PAGES = {
     "": { en: "Home", ru: "Главная" },
     "cloudflare-connect-2026/": { en: "Cloudflare Connect 2026", ru: "Cloudflare Connect 2026" },
-    "behavior-challenge-2026/": { en: "BEHAVIOR Challenge 2026", ru: "BEHAVIOR Challenge 2026" }
+    "behavior-challenge-2026/": { en: "BEHAVIOR Challenge 2026", ru: "BEHAVIOR Challenge 2026" },
+    "cloudflare-connect-2026/build-not-buy-workflow.html": { en: "Build, not buy workflow", ru: "Схема «Пора строить, а не покупать»" }
   };
   function clean(u) { try { var x = new URL(u); x.hash = ""; x.search = ""; return x.href.replace(/index\.html$/, ""); } catch (e) { return ""; } }
   var here = clean(location.href);
