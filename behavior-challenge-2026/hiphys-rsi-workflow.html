@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How HiPhys-RSI learns — process workflow</title>
+<meta name="color-scheme" content="light dark">
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem("behavior-2026-theme");
+    if (t !== "light" && t !== "dark") {
+      t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+  try {
+    var l = localStorage.getItem("behavior-2026-lang");
+    if (l === "en" || l === "ru") document.documentElement.lang = l;
+  } catch (e) {}
+})();
+</script>
+<style>
+
+:root {
+  --bg: #eef1f6;
+  --bg-elev: #fbfcfe;
+  --bg-soft: #f3f6fb;
+  --text: #16181d;
+  --text-muted: #555a66;
+  --border: #dce1ea;
+  --border-strong: #c9d0dc;
+  --accent: #3b6fd8;
+  --accent-text: #1d4e89;
+  --accent-soft: rgba(59, 111, 216, 0.14);
+  --accent-line: rgba(59, 111, 216, 0.55);
+  --shadow: 0 1px 2px rgba(20, 30, 50, 0.05), 0 10px 28px rgba(20, 30, 50, 0.08);
+  --focus: #1d4ed8;
+  --decision: #1d4e89;
+  --outcome-build: #1f6b3a;
+  --outcome-buy: #1d4e89;
+  --lesson: #8a4b00;
+  --limit: #6b5a4a;
+  --radius: 14px;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  --bg: #101217;
+  --bg-elev: #181b22;
+  --bg-soft: #1c2433;
+  --text: #eef0f6;
+  --text-muted: #a8b0be;
+  --border: #2c3340;
+  --border-strong: #3d4656;
+  --accent: #7aa2ff;
+  --accent-text: #7aa2ff;
+  --accent-soft: rgba(122, 162, 255, 0.16);
+  --accent-line: rgba(122, 162, 255, 0.55);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 28px rgba(0, 0, 0, 0.3);
+  --focus: #93c5fd;
+  --decision: #c5d4f5;
+  --outcome-build: #7dcea0;
+  --outcome-buy: #8bb4e8;
+  --lesson: #f0a35e;
+  --limit: #b4bcc8;
+  color-scheme: dark;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  background-image:
+    radial-gradient(1200px 500px at 10% -10%, var(--accent-soft), transparent 55%),
+    radial-gradient(900px 400px at 100% 0%, rgba(59, 111, 216, 0.07), transparent 50%);
+}
+
+/* Nav-bar controls (moved into .aes-nav by nav.js) */
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-elev);
+}
+.seg button {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0.32rem 0.6rem;
+  cursor: pointer;
+  min-width: 2.2rem;
+  line-height: 1.2;
+}
+.seg button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.seg button + button { border-left: 1px solid var(--border); }
+.icon-btn, .btn {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.icon-btn {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-btn svg { width: 1.05rem; height: 1.05rem; display: block; }
+[data-theme="light"] .icon-sun { display: none; }
+[data-theme="dark"] .icon-moon { display: none; }
+.seg button:focus-visible, .icon-btn:focus-visible, .step:focus-visible, a:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 3.5rem;
+}
+
+.hero {
+  padding: 1.4rem 0 0.4rem;
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--accent-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.eyebrow::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 2px;
+  background: var(--accent);
+  transform: rotate(45deg);
+}
+h1 {
+  margin: 0.35rem 0 0.3rem;
+  font-size: clamp(1.6rem, 3vw, 2.15rem);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+.speaker { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
+.hero-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.85rem;
+  margin: 0.7rem 0 0;
+}
+.hero-links a {
+  color: var(--accent-text);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-bottom: 1px solid transparent;
+}
+.hero-links a:hover { border-bottom-color: var(--accent); }
+
+.thesis {
+  margin: 1.15rem 0 1.25rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.15rem;
+  font-size: 1.02rem;
+}
+.thesis p { margin: 0; }
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem 1rem;
+  margin: 0 0 1.1rem;
+}
+.hint { margin: 0; color: var(--text-muted); font-size: 0.85rem; }
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.85rem;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.legend .lab { margin-right: 0.15rem; font-weight: 700; color: var(--text); }
+.swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.swatch i {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 3px;
+  border: 1px solid var(--border-strong);
+  display: inline-block;
+  background: var(--bg-elev);
+}
+.swatch.decision i { background: var(--accent-soft); border-color: var(--accent); border-radius: 1px; transform: rotate(45deg); width: 0.55rem; height: 0.55rem; }
+.swatch.outcome i { background: color-mix(in srgb, var(--outcome-build) 25%, var(--bg-elev)); border-color: var(--outcome-build); }
+.swatch.lesson i { background: var(--accent-soft); border-color: var(--accent); }
+.swatch.limit i { background: transparent; border-style: dashed; }
+
+/* Phases */
+.phase {
+  position: relative;
+  margin: 0 0 1.35rem;
+  padding: 1.15rem 1.1rem 1.2rem 1.15rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+.phase-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.95rem;
+}
+.phase-num {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: grid;
+  place-items: center;
+  letter-spacing: -0.02em;
+}
+[data-theme="dark"] .phase-num { color: #16181d; }
+.phase h2 {
+  margin: 0.15rem 0 0;
+  font-size: 1.12rem;
+  letter-spacing: -0.02em;
+}
+.phase-lead {
+  margin: 0.15rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+/* Steps */
+.flow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+.flow .step { flex: 1 1 0; min-width: 0; }
+.arrow {
+  flex: 0 0 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  opacity: 0.85;
+  margin-top: 2.15rem;
+}
+.arrow svg { width: 18px; height: 18px; display: block; }
+.grid-2, .grid-4 { display: grid; gap: 0.7rem; }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+.practices { display: flex; flex-direction: column; gap: 0.15rem; }
+.practices .flow { width: 100%; }
+.practices .down-arrow { display: flex; justify-content: center; color: var(--accent); opacity: 0.85; height: 1.2rem; }
+.practices .down-arrow svg { width: 18px; height: 18px; transform: rotate(90deg); }
+
+.step {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem 0.8rem 0.8rem;
+  position: relative;
+  min-width: 0;
+}
+.step[data-expandable="true"] { cursor: pointer; }
+.step[data-expandable="true"]:hover,
+.step[data-expandable="true"]:focus-visible,
+.step.is-open {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.step.decision {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: linear-gradient(180deg, var(--accent-soft), var(--bg-soft) 56%);
+}
+.step.outcome { border-color: color-mix(in srgb, var(--outcome-build) 35%, var(--border)); }
+.step.outcome.buy { border-color: color-mix(in srgb, var(--outcome-buy) 40%, var(--border)); }
+.step.outcome.compare { border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
+.step.outcome.compare .kind { color: var(--accent-text); }
+.step.lesson {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, var(--accent-soft), var(--bg-soft) 40%);
+}
+.step.limit { border-style: dashed; }
+.kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+}
+.kind {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+.step.outcome .kind { color: var(--outcome-build); }
+.step.outcome.buy .kind { color: var(--outcome-buy); }
+.step.limit .kind { color: var(--limit); }
+.step h3 {
+  margin: 0 0 0.28rem;
+  font-size: 0.95rem;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+.step .one {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+.more {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+.more > .more-inner { overflow: hidden; min-height: 0; }
+.more-inner p {
+  margin: 0.55rem 0 0;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.step:hover .more,
+.step:focus-within .more,
+.step.is-open .more { grid-template-rows: 1fr; }
+.chev {
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-muted);
+  flex: none;
+  transition: transform 0.2s ease;
+}
+.step[data-expandable="true"].is-open .chev,
+.step[data-expandable="true"]:hover .chev,
+.step[data-expandable="true"]:focus-within .chev { transform: rotate(180deg); }
+.step:not([data-expandable="true"]) .chev { display: none; }
+
+/* Decision fork */
+.decision-flow { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+.decision-flow > .step { align-self: center; width: min(100%, 28rem); }
+.fork {
+  display: flex;
+  gap: 1rem;
+  position: relative;
+  margin-top: 0.15rem;
+  padding-top: 0.7rem;
+}
+.fork::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 25%;
+  right: 25%;
+  height: 2px;
+  background: var(--accent-line);
+}
+.col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  position: relative;
+}
+.col::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 0.7rem;
+  background: var(--accent-line);
+  transform: translateX(-50%);
+}
+.edge-label {
+  align-self: center;
+  margin: 0.7rem 0 0.5rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  z-index: 1;
+}
+.col > .step { width: 100%; }
+.nested-fork { margin-top: 0.15rem; }
+.nested-fork::before { left: 25%; right: 25%; }
+.col.wide { flex: 1.05; }
+
+/* Timeline */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  padding-left: 1.15rem;
+}
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 0.35rem;
+  top: 0.4rem;
+  bottom: 0.4rem;
+  width: 2px;
+  background: var(--accent-line);
+}
+.tl-item {
+  position: relative;
+  padding: 0 0 0.7rem 0.35rem;
+}
+.tl-item:last-child { padding-bottom: 0; }
+.tl-item::before {
+  content: "";
+  position: absolute;
+  left: -0.95rem;
+  top: 0.95rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--bg-elev);
+}
+.tl-item.lesson::before { border-radius: 2px; }
+.tl-item.limit::before {
+  background: var(--bg-elev);
+  border: 2px dashed var(--limit);
+  box-shadow: 0 0 0 3px var(--bg-elev);
+  width: 0.72rem;
+  height: 0.72rem;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+.metric {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.55rem 0.6rem;
+  text-align: left;
+}
+.metric .val {
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: -0.03em;
+  color: var(--accent-text);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.metric .lbl {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+/* Takeaways */
+.takeaways {
+  margin: 0 0 1.35rem;
+  padding: 1.15rem 1.1rem 1.2rem;
+  background: linear-gradient(180deg, var(--accent-soft), var(--bg-elev) 42%);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+.takeaways h2 { margin: 0 0 0.8rem; font-size: 1.12rem; }
+.take-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+.take {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+}
+.take b {
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+  margin-top: 0.05rem;
+}
+[data-theme="dark"] .take b { color: #16181d; }
+.take p { margin: 0; font-size: 0.88rem; }
+
+/* Blogs + footer */
+.blogs {
+  padding: 1.15rem 1.1rem 1.2rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+.blogs h2 { margin: 0 0 0.25rem; font-size: 1.05rem; }
+.blogs .note { margin: 0 0 0.8rem; color: var(--text-muted); font-size: 0.82rem; }
+.blogs ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.65rem; }
+.blogs li {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+}
+.blogs a { color: var(--accent-text); font-weight: 700; text-decoration: none; }
+.blogs a:hover { text-decoration: underline; }
+.blogs p { margin: 0.25rem 0 0; font-size: 0.82rem; color: var(--text-muted); }
+footer.source {
+  margin: 1.25rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+footer.source p { margin: 0 0 0.35rem; }
+footer.source a { color: var(--accent-text); }
+
+@media (max-width: 900px) {
+  .flow { flex-direction: column; }
+  .arrow { flex: 0 0 1.1rem; transform: rotate(90deg); align-self: center; margin-top: 0; }
+  .practices .flow { flex-direction: column; }
+  .practices .flow .arrow { flex: 0 0 1.1rem; transform: rotate(90deg); align-self: center; }
+  .grid-2, .metrics { grid-template-columns: 1fr 1fr; }
+  .fork { flex-direction: column; padding-top: 0; gap: 0.85rem; }
+  .fork::before, .col::before { display: none; }
+}
+@media (max-width: 620px) {
+  .grid-2, .metrics, .take-list { grid-template-columns: 1fr; }
+  .wrap { padding: 0.85rem 0.85rem 2.5rem; }
+  .phase, .takeaways, .blogs { padding: 0.95rem 0.8rem 1rem; }
+}
+
+.edge-label {
+  text-align: center;
+  line-height: 1.35;
+  white-space: normal;
+  max-width: 16rem;
+}
+.loop-note {
+  align-self: center;
+  margin-top: 0.55rem;
+  color: var(--accent-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.35;
+  max-width: 16rem;
+}
+.decision-flow { margin-top: 0.35rem; }
+.decision-flow > .down-arrow {
+  display: flex;
+  justify-content: center;
+  color: var(--accent);
+  opacity: 0.85;
+  height: 1.25rem;
+  margin: 0.35rem 0 0.15rem;
+}
+.decision-flow > .down-arrow svg {
+  width: 18px;
+  height: 18px;
+  transform: rotate(90deg);
+}
+.metrics { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 900px) {
+  .metrics { grid-template-columns: 1fr 1fr; }
+  .edge-label, .loop-note { max-width: none; }
+}
+@media (max-width: 620px) {
+  .metrics { grid-template-columns: 1fr; }
+}
+
+</style>
+<script src="../nav.js"></script>
+</head>
+<body>
+<div class="nav-controls" data-nav-right>
+  <div class="seg" role="group" aria-label="Language">
+    <button type="button" id="btn-en" aria-pressed="true" aria-label="Switch to English">EN</button>
+    <button type="button" id="btn-ru" aria-pressed="false" aria-label="Switch to Russian">RU</button>
+  </div>
+  <button type="button" class="icon-btn" id="theme-toggle" aria-label="Dark mode" title="Dark mode">
+    <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12.4 2.1a1 1 0 0 1 .95 1.3A8 8 0 1 0 20.6 14.7a1 1 0 0 1 1.26.95A10 10 0 1 1 10.3 2.15a1 1 0 0 1 2.1-.05z"/></svg>
+    <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 5a1 1 0 0 1 1-1h0a1 1 0 1 1 0 2h0a1 1 0 0 1-1-1zm0 14a1 1 0 0 1 1-1h0a1 1 0 1 1 0 2h0a1 1 0 0 1-1-1zM5 13a1 1 0 0 1-1-1h0a1 1 0 1 1 2 0h0a1 1 0 0 1-1 1zm16-1a1 1 0 0 1-1 1h0a1 1 0 1 1 0-2h0a1 1 0 0 1 1 1zM7.05 7.05a1 1 0 0 1 1.41 0h0a1 1 0 0 1-1.41 1.41h0a1 1 0 0 1 0-1.41zm9.9 9.9a1 1 0 0 1 1.41 0h0a1 1 0 0 1-1.41 1.41h0a1 1 0 0 1 0-1.41zM7.05 16.95a1 1 0 0 1 0 1.41h0a1 1 0 1 1-1.41-1.41h0a1 1 0 0 1 1.41 0zM16.95 7.05a1 1 0 0 1 0 1.41h0A1 1 0 1 1 15.54 7.05h0a1 1 0 0 1 1.41 0zM12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/></svg>
+  </button>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow" data-i18n="eyebrow"></div>
+    <h1 data-i18n="title"></h1>
+    <p class="speaker" data-i18n="speaker"></p>
+    <div class="hero-links">
+      <a href="https://behavior1k-champion.com/assets/HiPhys-RSI_tech_report.pdf" target="_blank" rel="noopener noreferrer" data-i18n="pdf"></a>
+      <a href="./" data-i18n="summaryLink"></a>
+    </div>
+  </header>
+
+  <section class="thesis" aria-label="Thesis">
+    <p data-i18n="thesis"></p>
+  </section>
+
+  <div class="toolbar">
+    <p class="hint" data-i18n="hint"></p>
+    <div class="legend">
+      <span class="lab" data-i18n="legend"></span>
+      <span class="swatch step"><i></i><span data-i18n="legendStep"></span></span>
+      <span class="swatch decision"><i></i><span data-i18n="legendDecision"></span></span>
+      <span class="swatch outcome"><i></i><span data-i18n="legendOutcome"></span></span>
+      <span class="swatch lesson"><i></i><span data-i18n="legendLesson"></span></span>
+      <span class="swatch limit"><i></i><span data-i18n="legendLimit"></span></span>
+    </div>
+  </div>
+
+  <section class="phase" id="frozen">
+    <div class="phase-head">
+      <div class="phase-num">1</div>
+      <div>
+        <h2 data-i18n="p1"></h2>
+      </div>
+    </div>
+    <div class="flow" id="flow-frozen"></div>
+  </section>
+
+  <section class="phase" id="loop">
+    <div class="phase-head">
+      <div class="phase-num">2</div>
+      <div>
+        <h2 data-i18n="p2"></h2>
+        <p class="phase-lead" data-i18n="p2lead"></p>
+      </div>
+    </div>
+    <div class="flow" id="flow-loop"></div>
+    <div class="decision-flow">
+      <div class="down-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <article class="step decision" data-key="p2q1"></article>
+      <div class="fork">
+        <div class="col">
+          <div class="edge-label" data-i18n="yesRise"></div>
+          <article class="step outcome compare" data-key="p2o1"></article>
+          <p class="loop-note" data-i18n="loopBack"></p>
+        </div>
+        <div class="col">
+          <div class="edge-label" data-i18n="noStuck"></div>
+          <article class="step outcome" data-key="p2o2"></article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="phase" id="reuse">
+    <div class="phase-head">
+      <div class="phase-num">3</div>
+      <div>
+        <h2 data-i18n="p3"></h2>
+        <p class="phase-lead" data-i18n="p3lead"></p>
+      </div>
+    </div>
+    <div class="practices" id="flow-reuse"></div>
+  </section>
+
+  <section class="phase" id="finds">
+    <div class="phase-head">
+      <div class="phase-num">4</div>
+      <div>
+        <h2 data-i18n="p4"></h2>
+        <p class="phase-lead" data-i18n="p4lead"></p>
+      </div>
+    </div>
+    <div class="timeline" id="flow-finds"></div>
+  </section>
+
+  <section class="phase" id="score">
+    <div class="phase-head">
+      <div class="phase-num">5</div>
+      <div>
+        <h2 data-i18n="p5"></h2>
+        <p class="phase-lead" data-i18n="p5lead"></p>
+      </div>
+    </div>
+    <div class="timeline" id="flow-score"></div>
+  </section>
+
+  <section class="takeaways">
+    <h2 data-i18n="takeaways"></h2>
+    <div class="take-list">
+      <div class="take"><b>1</b><p data-i18n="t1"></p></div>
+      <div class="take"><b>2</b><p data-i18n="t2"></p></div>
+      <div class="take"><b>3</b><p data-i18n="t3"></p></div>
+      <div class="take"><b>4</b><p data-i18n="t4"></p></div>
+      <div class="take"><b>5</b><p data-i18n="t5"></p></div>
+    </div>
+  </section>
+
+  <footer class="source">
+    <p data-i18n="source"></p>
+    <p>
+      <a href="https://behavior1k-champion.com/assets/HiPhys-RSI_tech_report.pdf" target="_blank" rel="noopener noreferrer" data-i18n="footerPdf"></a>
+      ·
+      <a href="./" data-i18n="footerSummary"></a>
+    </p>
+  </footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var I18N = {
+  "en": {
+    "pageTitle": "How HiPhys-RSI learns — process workflow",
+    "eyebrow": "BEHAVIOR Challenge 2026",
+    "title": "How HiPhys-RSI “learns”",
+    "speaker": "Huawei Noah EAI Team (The North Star Team), champion solution for the BEHAVIOR Challenge 2026.",
+    "pdf": "Technical report ↗",
+    "summaryLink": "Written summary",
+    "thesis": "The coding agent and the vision-language model stay frozen. “Learning” here means writing and revising a robot program so that it raises the official task score, then keeping that program as reusable knowledge.",
+    "hint": "Hover or click a step to expand its detail.",
+    "legend": "Legend",
+    "legendStep": "Step",
+    "legendDecision": "Decision",
+    "legendOutcome": "Outcome",
+    "legendLesson": "Lesson",
+    "legendLimit": "Limit",
+    "langToEn": "Switch to English",
+    "langToRu": "Switch to Russian",
+    "themeToDark": "Dark mode",
+    "themeToLight": "Light mode",
+    "yesRise": "Rose by ≥ 0.02",
+    "noStuck": "Below 0.02 for 10 revisions, or budget ends",
+    "loopBack": "Then run the revised pipeline and diagnose again.",
+    "p1": "What stays frozen, and what grows",
+    "p1s1t": "A frozen coding agent",
+    "p1s1d": "A general-purpose coding agent, backed by a vision-language model that can read images and text. Neither one updates its weights.",
+    "p1s2t": "A library of classical tools",
+    "p1s2d": "Navigation, perception, mapping (SLAM), inverse kinematics, motion planning, and feedback control. Finished pipelines can later be called as tools themselves.",
+    "p1s3t": "The objective is the task score",
+    "p1s3d": "For each task, write an executable pipeline that maximizes the expected score, estimated on a fixed set of 10 training scenes.",
+    "p1s3m": "Formally, the chosen pipeline p* is the one, among programs that can be built from the available tools, that maximizes the expected task score E[Gτ(ξ)]. That expectation covers different starting layouts and how a run can go. Construction also has a compute and interaction budget.",
+    "p1s4t": "What actually accumulates",
+    "p1s4d": "Improvements live in the program: reusable procedures, constraints, recovery branches, and notes on failure cases — not in the model’s parameters.",
+    "p1s4m": "This is the paper’s idea of “scaling by structure”: capability grows as this executable knowledge covers more tasks and needs less new work for the next one.",
+    "p2": "The per-task learning loop",
+    "p2lead": "For each of the 100 household tasks, the agent builds one autonomous pipeline and revises it until the score stops improving. The agent is not in the loop during a run; it only comes back between runs to edit the code.",
+    "p2s1t": "Experience the task",
+    "p2s1d": "On a few of the 10 training scenes, the agent reads the task and the demonstration videos, then directly drives the tools itself.",
+    "p2s1m": "These trials show which tools are needed, how they should be combined, what intermediate states matter, and what observable conditions mean the task is done. That evidence, plus the demos, is what the first program is built from.",
+    "p2s2t": "Design a pipeline",
+    "p2s2d": "It turns those traces into an executable program: which tools to call, how data flows between them, glue code for mismatched interfaces, intermediate success checks, and if/then recovery.",
+    "p2s2m": "A typical pattern: perception output becomes the input to a planner, and a controller then executes the planned trajectory. Once written, the pipeline runs on its own, doing the coordination the agent previously did by hand. The report describes this structure but does not show any actual program code.",
+    "p2s3t": "Run and diagnose",
+    "p2s3d": "The pipeline is executed on a training scene. The agent reads logs, tool outputs, and the score, and the frozen vision-language model watches the video.",
+    "p2s3m": "The two signals together distinguish a successful tool call from a successful physical result — for example, a grasp that closed but left the object unmoved, or a planner that failed because of a small obstacle not obvious from the logs. The point is to connect a failure to a specific change in the program.",
+    "p2s4t": "Revise the code",
+    "p2s4d": "The agent may change tool choice, parameters, input and output transforms, step order, or conditional logic, then run the new pipeline and measure the score change, Δs = sₖ₊₁ − sₖ.",
+    "p2s4m": "Optional human corrections can also guide a design or a revision. The models stay frozen; only the program changes.",
+    "p2q1t": "Did the score rise by at least 0.02?",
+    "p2q1d": "Refinement stops only when this improvement stays below 0.02 for about 10 revisions in a row, or when the compute or interaction budget runs out. The exact threshold and patience can be adjusted by task length and difficulty.",
+    "p2o1t": "Keep revising",
+    "p2o1d": "If the score rose, the patience counter resets. The new program is run again, diagnosed, and edited. Early gains usually come from fixing tool settings and the order of steps.",
+    "p2o2t": "Stop and keep this pipeline",
+    "p2o2d": "The current program is kept as the task’s pipeline. It will run autonomously, and it can be reused as a tool when a later task is built.",
+    "p3": "How that knowledge is reused",
+    "p3lead": "Once a pipeline is kept, it can help with later tasks, train a learned policy, and be chosen at inference time.",
+    "p3s1t": "Pipelines become tools",
+    "p3s1d": "A finished pipeline can be called as a component inside a new one, so later programs can be built hierarchically from earlier ones.",
+    "p3s1m": "Reused components are tested on the new task’s 10 training scenes, and execution feedback guides any adaptation. The coding agent and vision-language model still stay frozen.",
+    "p3s2t": "Write a policy card",
+    "p3s2d": "Each pipeline — and later each vision-language-action (VLA) policy — gets a card listing its capabilities, requirements, historical success, and known failure cases.",
+    "p3s3t": "Route at inference time",
+    "p3s3d": "For a new task, the agent compares the situation with the cards and picks one pipeline or one VLA to run. That component then executes on its own.",
+    "p3s3m": "Cards are updated with new results from the training scenes, so later routing decisions can use what has been learned. The paper’s hybrid system is this routing layer plus the constructed pipelines.",
+    "p3s4t": "Fine-tune VLAs from rollouts",
+    "p3s4d": "Pipeline rollouts are turned into observation–action sequences and mixed with the official demonstrations to post-train a VLA. This is the only place in the method where model weights are updated.",
+    "p3s4m": "They started from last year’s winning model, based on π0.5, and trained three variants: one epoch over all 100 tasks, two epochs, and a per-task fine-tune that includes these agent-generated trajectories and extra 3D inputs such as depth. The resulting policies sit alongside the pipelines as routing candidates.",
+    "p4": "What the loop tends to find",
+    "p4lead": "Scores climb fast at first, then level off. Later gains come from new strategies, and a few hard tasks take far more work.",
+    "p4s1t": "Early iterations: compose what already works",
+    "p4s1d": "Rapid gains come from correcting tool settings, execution order, and coordination — straightforward failures inside an otherwise sound strategy.",
+    "p4s2t": "Later iterations: invent a new strategy",
+    "p4s2d": "After that, further gains come when the agent finds a more stable way to do the task, often one that was not in the demonstrations.",
+    "p4s2m": "Examples: grasping a frying pan by its near rim when the handle is out of reach; tipping a sprayer onto its side before picking it up; standing empty bags in a box first, then dropping burgers into them; lifting a wheelbarrow by the front tub rim when the handles are blocked.",
+    "p4s3t": "Most tasks are cheap; a few are not",
+    "p4s3d": "The median task took about 25.5 iterations, but the distribution has a long tail: a small subset needed much more refinement.",
+    "p4s3m": "General placement and tool use took the most work on average. Precision manipulation had a low median but a long upper tail. The authors argue for giving hard tasks a larger iteration budget instead of a uniform one.",
+    "p4s4t": "Shared skills and rare ones",
+    "p4s4d": "Navigation, visual search, grasping, and placement show up in almost every pipeline. Rarer skills such as cutting, pouring, articulation, and device operation often decide whether a task can be done at all.",
+    "p4s5t": "Figures from the report",
+    "p4s5d": "These numbers are taken from the paper’s text and figures. The report has no single headline score.",
+    "p4s6t": "The hybrid system beat the VLA-only baselines",
+    "p4s6d": "It scored higher than every VLA-only variant on nearly every task, across all eight task categories.",
+    "p4s6m": "A second epoch of multi-task VLA training barely helped. Per-task fine-tuning, including on pipeline-generated data, raised scores, but the VLAs stayed weak in the same places: mobile retrieval, matched placement, and precise alignment.",
+    "p4s7t": "Physical limits remain",
+    "p4s7d": "Grasping is still the leading failure. Placement and articulation errors fell, while timeouts and navigation problems rose: the robot often spends the budget searching or failing to thread a narrow gap.",
+    "m1v": "100",
+    "m1l": "household tasks",
+    "m2v": "10",
+    "m2l": "training scenes per task",
+    "m3v": "25.5",
+    "m3l": "median refinement iterations",
+    "m4v": "0.02 for 10",
+    "m4l": "default stop rule (score gain, then patience)",
+    "m5v": "Usually < 0.2",
+    "m5l": "typical drop on the hidden test",
+    "m6v": "32.7%",
+    "m6l": "of failures still from grasping",
+    "p5": "When the score is not the task",
+    "p5lead": "Because the agent is optimizing the official evaluator, a higher score counts as a successful revision even when the behavior is not what the task was meant to be.",
+    "p5s1t": "The evaluator is the reward",
+    "p5s1d": "The agent is optimizing the official score, not a human’s idea of a finished job.",
+    "p5s2t": "A clear shortcut",
+    "p5s2d": "In stacking wood, the agent made three separate pairs of touching logs instead of one pile. That satisfies the rule that each log touch another, but skips the intended stack.",
+    "p5s3t": "A murkier case",
+    "p5s3d": "In canning food, the agent diced food inside the refrigerator, taking partial credit and never moving the food to a bowl. That could be a valid intermediate step, or just chasing easy points.",
+    "p5s3m": "The authors treat this as the familiar reward-design problem: a proxy that works for ordinary behavior can break once a system searches hard for a high score. They suggest future benchmarks should also test whether the robot can tell on its own when a task is finished.",
+    "p5s4t": "Hidden test and other caveats",
+    "p5s4d": "Most hidden-test scores were a little lower, usually by less than 0.2, with the biggest drops on search-heavy tasks. Each task used only 10 test scenes; human corrections were allowed during construction; all results are in simulation.",
+    "takeaways": "Key takeaways",
+    "t1": "“Learning” is editing a program against the task score. The model’s weights do not change.",
+    "t2": "What grows is reusable structured knowledge: code, constraints, and notes on what fails.",
+    "t3": "Those programs can also produce training data for a VLA, so scaling by structure can feed scaling by data.",
+    "t4": "Because the objective is the official score, the agent can raise the number with a shortcut that is not the intended task.",
+    "t5": "Many coordination problems get solved in code; the remaining bottlenecks are physical — grasping, finding hidden objects, and running out of time.",
+    "source": "This workflow is drawn from Huawei Noah’s champion technical report for the BEHAVIOR Challenge 2026. The report does not include the source code of any pipeline.",
+    "footerPdf": "Technical report (PDF)",
+    "footerSummary": "Written summary",
+    "kindStep": "Step",
+    "kindDecision": "Decision",
+    "kindOutcome": "Outcome",
+    "kindLesson": "Lesson",
+    "kindLimit": "Limit"
+  },
+  "ru": {
+    "pageTitle": "Как HiPhys-RSI учится — схема процесса",
+    "eyebrow": "BEHAVIOR Challenge 2026",
+    "title": "Как HiPhys-RSI «учится»",
+    "speaker": "Команда Huawei Noah EAI (The North Star Team), чемпионское решение для BEHAVIOR Challenge 2026.",
+    "pdf": "Технический отчёт ↗",
+    "summaryLink": "Текстовое резюме",
+    "thesis": "Агент-программист и модель «зрение–язык» остаются замороженными. «Обучение» здесь — это написание и правка программы робота так, чтобы росла официальная оценка за задачу, а затем сохранение этой программы как повторно используемого знания.",
+    "hint": "Наведите курсор или нажмите на шаг, чтобы раскрыть подробности.",
+    "legend": "Обозначения",
+    "legendStep": "Шаг",
+    "legendDecision": "Решение",
+    "legendOutcome": "Итог",
+    "legendLesson": "Урок",
+    "legendLimit": "Ограничение",
+    "langToEn": "Переключить на английский",
+    "langToRu": "Переключить на русский",
+    "themeToDark": "Тёмная тема",
+    "themeToLight": "Светлая тема",
+    "yesRise": "Выросла на ≥ 0.02",
+    "noStuck": "Ниже 0.02 десять раз подряд, или кончился бюджет",
+    "loopBack": "Затем снова запустить исправленный пайплайн и разобрать прогон.",
+    "p1": "Что остаётся замороженным и что растёт",
+    "p1s1t": "Замороженный агент-программист",
+    "p1s1d": "Универсальный агент-программист с моделью «зрение–язык», которая читает изображения и текст. Веса ни у того, ни у другого не обновляются.",
+    "p1s2t": "Библиотека классических инструментов",
+    "p1s2d": "Навигация, восприятие, картографирование (SLAM), обратная кинематика, планирование движения и управление с обратной связью. Готовые пайплайны потом сами могут вызываться как инструменты.",
+    "p1s3t": "Цель — оценка за задачу",
+    "p1s3d": "Для каждой задачи нужно написать исполняемый пайплайн, который максимизирует ожидаемую оценку, измеряемую на фиксированном наборе из 10 обучающих сцен.",
+    "p1s3m": "Формально выбранный пайплайн p* — это тот, который среди программ, собираемых из доступных инструментов, максимизирует ожидаемую оценку E[Gτ(ξ)]. Матожидание учитывает разные начальные расстановки и то, как может пройти прогон. На построение также отводится бюджет вычислений и взаимодействий.",
+    "p1s4t": "Что на самом деле накапливается",
+    "p1s4d": "Улучшения живут в программе: повторно используемые процедуры, ограничения, ветки восстановления и заметки о сбоях — а не в параметрах модели.",
+    "p1s4m": "Это идея статьи о «масштабировании через структуру»: возможности растут по мере того, как эти исполняемые знания покрывают больше задач и требуют меньше новой работы для следующей.",
+    "p2": "Цикл обучения на одной задаче",
+    "p2lead": "Для каждой из 100 домашних задач агент собирает один автономный пайплайн и правит его, пока оценка не перестаёт расти. Во время прогона агента в контуре нет: он возвращается только между прогонами, чтобы править код.",
+    "p2s1t": "Получить опыт задачи",
+    "p2s1d": "На нескольких из 10 обучающих сцен агент читает условие и демонстрационные видео, а затем сам напрямую управляет инструментами.",
+    "p2s1m": "Эти пробы показывают, какие инструменты нужны, как их сочетать, какие промежуточные состояния важны и по каким наблюдаемым признакам задача считается выполненной. Из этих свидетельств и демонстраций собирается первая программа.",
+    "p2s2t": "Спроектировать пайплайн",
+    "p2s2d": "Агент превращает эти следы в исполняемую программу: какие инструменты вызывать, как между ними идут данные, связующий код для несовпадающих интерфейсов, промежуточные проверки успеха и ветки восстановления.",
+    "p2s2m": "Типичный образец: выход восприятия становится входом планировщика, а контроллер затем исполняет запланированную траекторию. После этого пайплайн работает сам, выполняя координацию, которую агент раньше делал вручную. В отчёте описана эта структура, но исходный код программ не приводится.",
+    "p2s3t": "Запустить и разобрать сбой",
+    "p2s3d": "Пайплайн выполняется на обучающей сцене. Агент читает журналы, выходы инструментов и оценку, а замороженная модель «зрение–язык» смотрит видео.",
+    "p2s3m": "Два сигнала вместе позволяют отличить успешный вызов инструмента от успешного физического результата — например, захват, при котором захват закрылся, а предмет не сдвинулся, или планировщик, который не нашёл путь из‑за небольшого препятствия, не видного из журналов. Цель — связать сбой с конкретным изменением в программе.",
+    "p2s4t": "Исправить код",
+    "p2s4d": "Агент может сменить инструмент, параметры, преобразования входов и выходов, порядок шагов или условную логику, затем снова запустить пайплайн и измерить изменение оценки, Δs = sₖ₊₁ − sₖ.",
+    "p2s4m": "Необязательные человеческие правки тоже могут направлять проект или очередную ревизию. Модели остаются замороженными; меняется только программа.",
+    "p2q1t": "Оценка выросла хотя бы на 0.02?",
+    "p2q1d": "Правки останавливаются только когда этот прирост остаётся ниже 0.02 примерно десять ревизий подряд, или когда кончается бюджет вычислений и взаимодействий. Точный порог и терпение можно менять в зависимости от длины и сложности задачи.",
+    "p2o1t": "Продолжать править",
+    "p2o1d": "Если оценка выросла, счётчик терпения сбрасывается. Новая программа снова запускается, разбирается и правится. Ранний прирост обычно даёт исправление настроек инструментов и порядка шагов.",
+    "p2o2t": "Остановить и сохранить пайплайн",
+    "p2o2d": "Текущая программа сохраняется как пайплайн этой задачи. Она будет выполняться автономно и может вызываться как инструмент при построении более поздней задачи.",
+    "p3": "Как это знание переиспользуется",
+    "p3lead": "Когда пайплайн сохранён, он может помочь в следующих задачах, обучить выученную политику и быть выбранным в момент вывода.",
+    "p3s1t": "Пайплайны становятся инструментами",
+    "p3s1d": "Готовый пайплайн можно вызвать как компонент внутри нового, так что более поздние программы собираются иерархически из более ранних.",
+    "p3s1m": "Повторно используемые компоненты проверяются на 10 обучающих сценах новой задачи, и обратная связь с выполнения направляет необходимую адаптацию. Агент-программист и модель «зрение–язык» по-прежнему заморожены.",
+    "p3s2t": "Написать карточку политики",
+    "p3s2d": "Каждый пайплайн — и позже каждая политика «зрение–язык–действие» (VLA) — получает карточку со своими возможностями, требованиями, историей успеха и известными сбоями.",
+    "p3s3t": "Выбрать исполнителя в момент вывода",
+    "p3s3d": "Для новой задачи агент сравнивает ситуацию с карточками и выбирает один пайплайн или одну VLA. Выбранный компонент затем выполняется сам.",
+    "p3s3m": "Карточки обновляются новыми результатами с обучающих сцен, так что более поздние решения о маршрутизации могут учитывать накопленный опыт. Гибридная система из статьи — это этот слой маршрутизации плюс построенные пайплайны.",
+    "p3s4t": "Дообучить VLA по прогонам",
+    "p3s4d": "Прогоны пайплайнов превращаются в последовательности «наблюдение–действие» и смешиваются с официальными демонстрациями для дообучения VLA. Это единственное место в методе, где обновляются веса модели.",
+    "p3s4m": "Авторы взяли прошлогоднюю победившую модель на основе π0.5 и обучили три варианта: одну эпоху по всем 100 задачам, две эпохи и дообучение на каждую задачу, включающее эти траектории агента и дополнительные трёхмерные входы, например глубину. Полученные политики стоят рядом с пайплайнами как кандидаты для маршрутизации.",
+    "p4": "Что цикл обычно находит",
+    "p4lead": "Оценки сначала растут быстро, затем выходят на плато. Дальнейший прирост даёт поиск новых стратегий, а несколько трудных задач требуют гораздо больше работы.",
+    "p4s1t": "Ранние итерации: собрать уже имеющееся",
+    "p4s1d": "Быстрый прирост даёт исправление настроек инструментов, порядка выполнения и координации — простых сбоев внутри в целом подходящей стратегии.",
+    "p4s2t": "Поздние итерации: придумать новую стратегию",
+    "p4s2d": "После этого дальнейший прирост появляется, когда агент находит более устойчивый способ выполнить задачу, часто такой, которого не было в демонстрациях.",
+    "p4s2m": "Примеры: взять сковороду за ближний край, когда ручка недоступна; опрокинуть распылитель на бок перед захватом; сначала поставить пустые пакеты в коробку, а затем бросить в них бургеры; поднять тачку за передний край кузова, когда ручки загорожены.",
+    "p4s3t": "Большинство задач дёшевы, некоторые — нет",
+    "p4s3d": "Медианная задача заняла около 25.5 итераций, но у распределения длинный хвост: небольшой набор задач потребовал гораздо больше правок.",
+    "p4s3m": "Обычная расстановка предметов и работа с инструментом в среднем требовали больше всего работы. Точные манипуляции имели низкую медиану, но длинный верхний хвост. Авторы предлагают выделять трудным задачам больший бюджет итераций, а не одинаковый для всех.",
+    "p4s4t": "Общие навыки и редкие",
+    "p4s4d": "Навигация, визуальный поиск, захват и установка встречаются почти в каждом пайплайне. Более редкие навыки — разрезание, наливание, работа с шарнирами и устройствами — часто решают, выполнима ли задача вообще.",
+    "p4s5t": "Цифры из отчёта",
+    "p4s5d": "Эти числа взяты из текста и рисунков статьи. В отчёте нет одной итоговой оценки на все задачи.",
+    "p4s6t": "Гибридная система обошла чисто VLA-базовые линии",
+    "p4s6d": "Она набрала больше, чем любой чисто VLA-вариант, почти на всех задачах, во всех восьми категориях.",
+    "p4s6m": "Вторая эпоха многозадачного обучения VLA почти не помогла. Дообучение на каждую задачу, в том числе на данных пайплайнов, подняло оценки, но слабые места VLA остались теми же: поиск и доставка предметов по дому, установка по соответствию и точное выравнивание.",
+    "p4s7t": "Физические ограничения остаются",
+    "p4s7d": "Захват по-прежнему главный тип сбоя. Ошибки установки и работы с шарнирами стали реже, а тайм-ауты и сбои навигации — чаще: робот часто тратит бюджет на поиск или не может пройти в узкий зазор.",
+    "m1v": "100",
+    "m1l": "домашних задач",
+    "m2v": "10",
+    "m2l": "обучающих сцен на задачу",
+    "m3v": "25.5",
+    "m3l": "медиана числа итераций правки",
+    "m4v": "0.02 за 10",
+    "m4l": "правило остановки по умолчанию (прирост, затем терпение)",
+    "m5v": "Обычно < 0.2",
+    "m5l": "типичное снижение на скрытом тесте",
+    "m6v": "32.7%",
+    "m6l": "сбоев по-прежнему из‑за захвата",
+    "p5": "Когда оценка — это ещё не задача",
+    "p5lead": "Поскольку агент оптимизирует официальный оценщик, более высокий балл считается успешной правкой даже тогда, когда поведение не соответствует замыслу задачи.",
+    "p5s1t": "Награда — это оценщик",
+    "p5s1d": "Агент оптимизирует официальную оценку, а не человеческое представление о законченной работе.",
+    "p5s2t": "Явный обходной путь",
+    "p5s2d": "В задаче на укладку дров агент сложил три отдельные пары соприкасающихся брёвен вместо одной поленницы. Это удовлетворяет правилу, что каждое бревно касается другого, но обходит задуманную стопку.",
+    "p5s3t": "Более двусмысленный случай",
+    "p5s3d": "В задаче на консервирование агент нарезал еду прямо в холодильнике, получил частичный балл и так и не переложил еду в миску. Это может быть законным промежуточным шагом — или погоней за лёгкими очками.",
+    "p5s3m": "Авторы рассматривают это как знакомую проблему проектирования награды: косвенный критерий, который работает при обычном поведении, может сломаться, когда система усердно ищет высокий балл. Они предлагают в будущих бенчмарках также проверять, может ли робот сам понять, что задача закончена.",
+    "p5s4t": "Скрытый тест и другие оговорки",
+    "p5s4d": "На скрытом тесте оценки большинства задач были немного ниже, обычно менее чем на 0.2, с наибольшим падением на задачах с поиском. На каждую задачу пришлось только 10 тестовых сцен; при построении допускались человеческие правки; все результаты — в симуляции.",
+    "takeaways": "Главные выводы",
+    "t1": "«Обучение» — это правка программы под оценку за задачу. Веса модели не меняются.",
+    "t2": "Растёт повторно используемое структурированное знание: код, ограничения и заметки о том, что не получается.",
+    "t3": "Эти программы могут также давать данные для обучения VLA, так что масштабирование через структуру питает масштабирование через данные.",
+    "t4": "Поскольку цель — официальная оценка, агент может поднять число обходным путём, который не является задуманной задачей.",
+    "t5": "Многие проблемы координации решаются в коде; оставшиеся узкие места физические — захват, поиск спрятанных предметов и нехватка времени.",
+    "source": "Эта схема составлена по чемпионскому техническому отчёту Huawei Noah для BEHAVIOR Challenge 2026. В отчёте нет исходного кода ни одного пайплайна.",
+    "footerPdf": "Технический отчёт (PDF)",
+    "footerSummary": "Текстовое резюме",
+    "kindStep": "Шаг",
+    "kindDecision": "Решение",
+    "kindOutcome": "Итог",
+    "kindLesson": "Урок",
+    "kindLimit": "Ограничение"
+  }
+};
+
+  var ARROW = '<span class="arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>';
+  var CHEV = '<svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path fill="currentColor" d="M5.2 7.2a1 1 0 0 1 1.4 0L10 10.6l3.4-3.4a1 1 0 1 1 1.4 1.4l-4.1 4.1a1 1 0 0 1-1.4 0L5.2 8.6a1 1 0 0 1 0-1.4z"/></svg>';
+
+  var FROZEN = ["p1s1", "p1s2", "p1s3", "p1s4"];
+  var LOOP = ["p2s1", "p2s2", "p2s3", "p2s4"];
+  var FINDS = [
+    { key: "p4s1", cls: "" },
+    { key: "p4s2", cls: "" },
+    { key: "p4s3", cls: "" },
+    { key: "p4s4", cls: "" },
+    { key: "p4s5", cls: "outcome", metrics: true },
+    { key: "p4s6", cls: "lesson" },
+    { key: "p4s7", cls: "limit" }
+  ];
+  var SCORE = [
+    { key: "p5s1", cls: "" },
+    { key: "p5s2", cls: "limit" },
+    { key: "p5s3", cls: "limit" },
+    { key: "p5s4", cls: "limit" }
+  ];
+
+  var lang = document.documentElement.lang === "ru" ? "ru" : "en";
+  var theme = document.documentElement.getAttribute("data-theme") || "light";
+
+  function pack() { return I18N[lang] || I18N.en; }
+  function t(key) { return pack()[key] || I18N.en[key] || ""; }
+
+  function kindLabel(el) {
+    if (el.classList.contains("decision")) return t("kindDecision");
+    if (el.classList.contains("lesson")) return t("kindLesson");
+    if (el.classList.contains("limit")) return t("kindLimit");
+    if (el.classList.contains("outcome")) return t("kindOutcome");
+    return t("kindStep");
+  }
+
+  function metricsHtml() {
+    var ids = [1, 2, 3, 4, 5, 6];
+    return '<div class="metrics">' + ids.map(function (i) {
+      return '<div class="metric"><span class="val" data-i18n="m' + i + 'v"></span><span class="lbl" data-i18n="m' + i + 'l"></span></div>';
+    }).join("") + "</div>";
+  }
+
+  function fillStep(el, key) {
+    var more = t(key + "m");
+    var expandable = !!more;
+    if (expandable) el.setAttribute("data-expandable", "true");
+    else el.removeAttribute("data-expandable");
+    if (expandable) {
+      el.setAttribute("tabindex", "0");
+      el.setAttribute("role", "button");
+      el.setAttribute("aria-expanded", el.classList.contains("is-open") ? "true" : "false");
+    } else {
+      el.removeAttribute("tabindex");
+      el.removeAttribute("role");
+      el.removeAttribute("aria-expanded");
+    }
+    var html = '<div class="kicker"><span class="kind">' + kindLabel(el) + "</span>";
+    if (expandable) html += CHEV;
+    html += "</div>";
+    html += "<h3 data-i18n=\"" + key + "t\"></h3>";
+    html += "<p class=\"one\" data-i18n=\"" + key + "d\"></p>";
+    if (el.hasAttribute("data-metrics")) html += metricsHtml();
+    if (expandable) {
+      html += '<div class="more"><div class="more-inner"><p data-i18n="' + key + 'm"></p></div></div>';
+    }
+    el.innerHTML = html;
+  }
+
+  function makeStep(key, extraClass) {
+    var el = document.createElement("article");
+    el.className = "step" + (extraClass ? " " + extraClass : "");
+    el.setAttribute("data-key", key);
+    return el;
+  }
+
+  function buildFlow(container, keys) {
+    container.innerHTML = "";
+    keys.forEach(function (key, i) {
+      if (i) container.insertAdjacentHTML("beforeend", ARROW);
+      container.appendChild(makeStep(key));
+    });
+  }
+
+  function buildCase(container, items) {
+    container.innerHTML = "";
+    items.forEach(function (item) {
+      var wrap = document.createElement("div");
+      wrap.className = "tl-item" + (item.cls ? " " + item.cls : "");
+      var step = makeStep(item.key, item.cls);
+      if (item.metrics) step.setAttribute("data-metrics", "true");
+      wrap.appendChild(step);
+      container.appendChild(wrap);
+    });
+  }
+
+  function applyI18n() {
+    document.documentElement.lang = lang;
+    document.title = t("pageTitle");
+    document.querySelectorAll(".step[data-key]").forEach(function (el) {
+      fillStep(el, el.getAttribute("data-key"));
+    });
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      el.textContent = t(el.getAttribute("data-i18n"));
+    });
+    var en = document.getElementById("btn-en");
+    var ru = document.getElementById("btn-ru");
+    en.setAttribute("aria-pressed", lang === "en" ? "true" : "false");
+    ru.setAttribute("aria-pressed", lang === "ru" ? "true" : "false");
+    en.setAttribute("aria-label", t("langToEn"));
+    ru.setAttribute("aria-label", t("langToRu"));
+    applyTheme();
+  }
+
+  function applyTheme() {
+    document.documentElement.setAttribute("data-theme", theme);
+    var btn = document.getElementById("theme-toggle");
+    var label = theme === "dark" ? t("themeToLight") : t("themeToDark");
+    btn.setAttribute("aria-label", label);
+    btn.setAttribute("title", label);
+    btn.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+  }
+
+  function saveLang() { try { localStorage.setItem("behavior-2026-lang", lang); } catch (e) {} }
+  function saveTheme() { try { localStorage.setItem("behavior-2026-theme", theme); } catch (e) {} }
+
+  function toggleStep(el) {
+    if (!el || el.getAttribute("data-expandable") !== "true") return;
+    var open = !el.classList.contains("is-open");
+    el.classList.toggle("is-open", open);
+    el.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  function bind() {
+    document.getElementById("btn-en").addEventListener("click", function () {
+      lang = "en"; saveLang(); applyI18n();
+    });
+    document.getElementById("btn-ru").addEventListener("click", function () {
+      lang = "ru"; saveLang(); applyI18n();
+    });
+    document.getElementById("theme-toggle").addEventListener("click", function () {
+      theme = theme === "dark" ? "light" : "dark";
+      saveTheme();
+      applyTheme();
+    });
+    document.addEventListener("click", function (e) {
+      var step = e.target.closest(".step[data-expandable='true']");
+      if (step) toggleStep(step);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      var step = e.target.closest && e.target.closest(".step[data-expandable='true']");
+      if (!step || e.target !== step) return;
+      e.preventDefault();
+      toggleStep(step);
+    });
+  }
+
+  function buildReuse(container) {
+    container.innerHTML = "";
+    var top = document.createElement("div");
+    top.className = "grid-2";
+    top.appendChild(makeStep("p3s1"));
+    top.appendChild(makeStep("p3s4"));
+    container.appendChild(top);
+    container.insertAdjacentHTML("beforeend", '<div class="down-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>');
+    var bottom = document.createElement("div");
+    bottom.className = "flow";
+    bottom.appendChild(makeStep("p3s2"));
+    bottom.insertAdjacentHTML("beforeend", ARROW);
+    bottom.appendChild(makeStep("p3s3"));
+    container.appendChild(bottom);
+  }
+
+  buildFlow(document.getElementById("flow-frozen"), FROZEN);
+  buildFlow(document.getElementById("flow-loop"), LOOP);
+  buildReuse(document.getElementById("flow-reuse"));
+  buildCase(document.getElementById("flow-finds"), FINDS);
+  buildCase(document.getElementById("flow-score"), SCORE);
+  applyI18n();
+  bind();
+})();
+</script>
+</body>
+</html>

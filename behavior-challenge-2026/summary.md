@@ -4,6 +4,8 @@
 
 Source: [HiPhys-RSI technical report (PDF)](https://behavior1k-champion.com/assets/HiPhys-RSI_tech_report.pdf)
 
+[Process workflow](hiphys-rsi-workflow.html): how the agent learns by writing and revising pipelines.
+
 This is Huawei Noah's winning write-up for the BEHAVIOR Challenge 2026, which has robots doing 100 long household tasks in simulation. Their main claim is that you can scale robot capability by building and refining code, not just by training bigger models on more data.
 
 ## How it works (they call it HiPhys-RSI)
